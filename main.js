@@ -1,15 +1,26 @@
 /**
- * Church Youth Group Ledger - Web Component Implementation
- * Handles spreadsheet-like interaction and automatic balance calculation.
+ * ONYX Church Youth Group Ledger - Web Component Implementation
+ * Handles monthly data management and spreadsheet-like interaction.
  */
 
 class LedgerSheet extends HTMLElement {
   constructor() {
     super();
-    this.rows = [
-      { id: Date.now(), date: new Date().toISOString().split('T')[0], description: '초기 잔액', income: 0, expense: 0, balance: 0 }
-    ];
+    const now = new Date();
+    this.currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Initialize data with current month
+    this.ledgerData = {
+      [this.currentMonth]: [
+        { id: Date.now(), date: this.getTodayStr(), description: '이월 잔액', income: 0, expense: 0, balance: 0 }
+      ]
+    };
+    
     this.render();
+  }
+
+  getTodayStr() {
+    return new Date().toISOString().split('T')[0];
   }
 
   connectedCallback() {
@@ -18,6 +29,8 @@ class LedgerSheet extends HTMLElement {
         const rowId = parseInt(e.target.dataset.rowId);
         const field = e.target.dataset.field;
         this.updateRowData(rowId, field, e.target.value);
+      } else if (e.target.classList.contains('month-input')) {
+        this.switchMonth(e.target.value);
       }
     });
 
@@ -30,8 +43,32 @@ class LedgerSheet extends HTMLElement {
     });
   }
 
+  switchMonth(monthStr) {
+    this.currentMonth = monthStr;
+    if (!this.ledgerData[this.currentMonth]) {
+      // Find previous month's final balance
+      const months = Object.keys(this.ledgerData).sort();
+      const currentIndex = months.indexOf(this.currentMonth);
+      let prevBalance = 0;
+      
+      // Simpler: find the latest month before this one
+      const prevMonths = months.filter(m => m < this.currentMonth);
+      if (prevMonths.length > 0) {
+        const lastMonth = prevMonths[prevMonths.length - 1];
+        const lastMonthRows = this.ledgerData[lastMonth];
+        prevBalance = lastMonthRows.length > 0 ? lastMonthRows[lastMonthRows.length - 1].balance : 0;
+      }
+
+      this.ledgerData[this.currentMonth] = [
+        { id: Date.now(), date: `${this.currentMonth}-01`, description: '전월 이월', income: prevBalance, expense: 0, balance: prevBalance }
+      ];
+    }
+    this.render();
+  }
+
   updateRowData(id, field, value) {
-    const row = this.rows.find(r => r.id === id);
+    const rows = this.ledgerData[this.currentMonth];
+    const row = rows.find(r => r.id === id);
     if (!row) return;
 
     if (field === 'income' || field === 'expense') {
@@ -41,20 +78,21 @@ class LedgerSheet extends HTMLElement {
       row[field] = value;
     }
     
-    // Partially update balance cells without full re-render for performance
     this.updateBalanceDisplays();
   }
 
   calculateBalances() {
+    const rows = this.ledgerData[this.currentMonth];
     let currentBalance = 0;
-    this.rows.forEach(row => {
+    rows.forEach(row => {
       currentBalance += (row.income - row.expense);
       row.balance = currentBalance;
     });
   }
 
   updateBalanceDisplays() {
-    this.rows.forEach(row => {
+    const rows = this.ledgerData[this.currentMonth];
+    rows.forEach(row => {
       const balanceCell = this.querySelector(`.balance-cell[data-row-id="${row.id}"]`);
       if (balanceCell) {
         balanceCell.textContent = this.formatCurrency(row.balance);
@@ -62,9 +100,9 @@ class LedgerSheet extends HTMLElement {
     });
 
     // Update totals
-    const totalIncome = this.rows.reduce((sum, row) => sum + row.income, 0);
-    const totalExpense = this.rows.reduce((sum, row) => sum + row.expense, 0);
-    const finalBalance = this.rows.length > 0 ? this.rows[this.rows.length - 1].balance : 0;
+    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
+    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
+    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
 
     const totalIncomeEl = this.querySelector('#total-income');
     const totalExpenseEl = this.querySelector('#total-expense');
@@ -76,23 +114,24 @@ class LedgerSheet extends HTMLElement {
   }
 
   addRow() {
-    const lastRow = this.rows[this.rows.length - 1];
+    const rows = this.ledgerData[this.currentMonth];
+    const lastRow = rows[rows.length - 1];
     const newRow = {
       id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
+      date: `${this.currentMonth}-${String(new Date().getDate()).padStart(2, '0')}`,
       description: '',
       income: 0,
       expense: 0,
       balance: lastRow ? lastRow.balance : 0
     };
-    this.rows.push(newRow);
+    rows.push(newRow);
     this.render();
   }
 
   resetLedger() {
-    if (confirm('정말로 모든 내용을 초기화할까요?')) {
-      this.rows = [
-        { id: Date.now(), date: new Date().toISOString().split('T')[0], description: '초기 잔액', income: 0, expense: 0, balance: 0 }
+    if (confirm('현재 월의 모든 내용을 초기화할까요?')) {
+      this.ledgerData[this.currentMonth] = [
+        { id: Date.now(), date: `${this.currentMonth}-01`, description: '초기화됨', income: 0, expense: 0, balance: 0 }
       ];
       this.render();
     }
@@ -104,24 +143,30 @@ class LedgerSheet extends HTMLElement {
 
   render() {
     this.calculateBalances();
-    const totalIncome = this.rows.reduce((sum, row) => sum + row.income, 0);
-    const totalExpense = this.rows.reduce((sum, row) => sum + row.expense, 0);
-    const finalBalance = this.rows.length > 0 ? this.rows[this.rows.length - 1].balance : 0;
+    const rows = this.ledgerData[this.currentMonth];
+    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
+    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
+    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
     
     this.innerHTML = `
+      <div class="month-selector-bar">
+        <label for="month-picker">조회 월 선택:</label>
+        <input type="month" id="month-picker" class="month-input" value="${this.currentMonth}">
+      </div>
+
       <div class="sheet-container">
         <table>
           <thead>
             <tr>
-              <th style="width: 15%;">날짜</th>
-              <th style="width: 35%;">적요 (내용)</th>
-              <th style="width: 15%;">수입 (₩)</th>
-              <th style="width: 15%;">지출 (₩)</th>
-              <th style="width: 20%;">잔액 (₩)</th>
+              <th style="width: 120px;">날짜</th>
+              <th>적요 (내용)</th>
+              <th style="width: 150px;">수입 (₩)</th>
+              <th style="width: 150px;">지출 (₩)</th>
+              <th style="width: 180px;">잔액 (₩)</th>
             </tr>
           </thead>
           <tbody>
-            ${this.rows.map(row => `
+            ${rows.map(row => `
               <tr data-row-id="${row.id}">
                 <td>
                   <input type="date" class="cell-input" 
@@ -147,20 +192,20 @@ class LedgerSheet extends HTMLElement {
           </tbody>
           <tfoot>
             <tr class="summary-row">
-              <td colspan="2" style="text-align: right; padding: 12px 16px; font-weight: 700;">합계</td>
-              <td class="number-input income-text" style="padding: 12px 16px; font-weight: 700;" id="total-income">${this.formatCurrency(totalIncome)}</td>
-              <td class="number-input expense-text" style="padding: 12px 16px; font-weight: 700;" id="total-expense">${this.formatCurrency(totalExpense)}</td>
-              <td class="balance-cell" style="background: var(--primary-color); color: white;" id="final-balance">${this.formatCurrency(finalBalance)}</td>
+              <td colspan="2" style="text-align: right; padding: 6px 12px; font-weight: 700;">월 합계</td>
+              <td class="number-input income-text" style="padding: 6px 12px; font-weight: 700;" id="total-income">${this.formatCurrency(totalIncome)}</td>
+              <td class="number-input expense-text" style="padding: 6px 12px; font-weight: 700;" id="total-expense">${this.formatCurrency(totalExpense)}</td>
+              <td class="balance-cell final-balance-total" id="final-balance">${this.formatCurrency(finalBalance)}</td>
             </tr>
           </tfoot>
         </table>
       </div>
       <div class="controls">
         <button class="btn btn-primary add-row-btn">
-          <span>+</span> 내역 추가하기
+          + 행 추가
         </button>
-        <button class="btn btn-secondary reset-btn">
-          초기화
+        <button class="btn reset-btn">
+          현재 월 초기화
         </button>
       </div>
     `;
