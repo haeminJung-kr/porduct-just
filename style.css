@@ -192,6 +192,21 @@ tr:hover td {
   background: #1967d2;
 }
 
+.btn-secondary {
+  background-color: #f8f9fa;
+  color: var(--text-color);
+}
+
+.btn-secondary:hover {
+  background-color: #f1f3f4;
+}
+
+.btn-success {
+  background-color: #e6f4ea !important;
+  color: #0d652d !important;
+  border-color: #ceead6 !important;
+}
+
 .minimal-footer {
   padding: 24px 0;
   color: #9aa0a6;

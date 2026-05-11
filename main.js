@@ -39,6 +39,8 @@ class LedgerSheet extends HTMLElement {
         this.addRow();
       } else if (e.target.closest('.reset-btn')) {
         this.resetLedger();
+      } else if (e.target.closest('.copy-report-btn')) {
+        this.copyToClipboard(e.target.closest('.copy-report-btn'));
       }
     });
   }
@@ -137,6 +139,45 @@ class LedgerSheet extends HTMLElement {
     }
   }
 
+  async copyToClipboard(btn) {
+    const report = this.generateReport();
+    try {
+      await navigator.clipboard.writeText(report);
+      const originalText = btn.textContent;
+      btn.textContent = '✅ 복사 완료!';
+      btn.classList.add('btn-success');
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.classList.remove('btn-success');
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+      alert('복사에 실패했습니다.');
+    }
+  }
+
+  generateReport() {
+    const rows = this.ledgerData[this.currentMonth];
+    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
+    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
+    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
+
+    let text = `[ONYX 청년부 ${this.currentMonth} 재정 보고]\n\n`;
+    text += `💰 총 수입: ${this.formatCurrency(totalIncome)}원\n`;
+    text += `💸 총 지출: ${this.formatCurrency(totalExpense)}원\n`;
+    text += `📊 최종 잔액: ${this.formatCurrency(finalBalance)}원\n`;
+    text += `--------------------\n\n`;
+    text += `[상세 내역]\n`;
+
+    rows.forEach(row => {
+      const type = row.income > 0 ? '➕' : (row.expense > 0 ? '➖' : '🔹');
+      const amount = row.income > 0 ? row.income : (row.expense > 0 ? row.expense : 0);
+      text += `- ${row.date.slice(5)} ${row.description}: ${type}${this.formatCurrency(amount)}\n`;
+    });
+
+    return text;
+  }
+
   formatCurrency(amount) {
     return new Intl.NumberFormat('ko-KR').format(amount);
   }
@@ -203,6 +244,9 @@ class LedgerSheet extends HTMLElement {
       <div class="controls">
         <button class="btn btn-primary add-row-btn">
           + 행 추가
+        </button>
+        <button class="btn btn-secondary copy-report-btn">
+          💬 보고서 복사 (메신저용)
         </button>
         <button class="btn reset-btn">
           현재 월 초기화
