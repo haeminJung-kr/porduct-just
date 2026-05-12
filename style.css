@@ -1,215 +1,353 @@
 :root {
-  --excel-border: #d4d4d4;
-  --excel-header-bg: #f8f9fa;
-  --excel-header-text: #5f6368;
-  --excel-selection-bg: #e8f0fe;
-  --excel-selection-border: #1a73e8;
-  --primary-color: #1a73e8;
-  --text-color: #3c4043;
-  --bg-color: #ffffff;
-  --income-color: #0d652d;
-  --expense-color: #c5221f;
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --secondary: #64748b;
+    --background: #f8fafc;
+    --foreground: #0f172a;
+    --card: #ffffff;
+    --border: #e2e8f0;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --radius: 12px;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --container-width: 1200px;
 }
 
 * {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-  font-family: 'Pretendard', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  line-height: 1.4;
-  font-size: 13px; /* Smaller font for excel feel */
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--background);
+    color: var(--foreground);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
-.container-full {
-  width: 100%;
-  padding: 0 16px;
+.container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 24px;
 }
 
-/* Minimalist Header */
-.minimal-header {
-  padding: 12px 0;
-  border-bottom: 1px solid var(--excel-border);
-  background: white;
+/* Header Styles */
+.main-header {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-.brand-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-.brand-name {
-  font-weight: 700;
-  font-size: 1.2rem;
-  letter-spacing: 1px;
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.brand-divider {
-  color: var(--excel-border);
-  font-weight: 300;
+.nav-links {
+    display: flex;
+    gap: 24px;
+    align-items: center;
 }
 
-.brand-title {
-  color: var(--excel-header-text);
-  font-weight: 500;
+.nav-link {
+    text-decoration: none;
+    color: var(--secondary);
+    font-weight: 500;
+    transition: color 0.2s;
 }
 
-/* Month Selector UI */
-.month-selector-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 0;
-}
-
-.month-input {
-  border: 1px solid var(--excel-border);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-family: inherit;
-  font-size: 13px;
-  outline-color: var(--primary-color);
-}
-
-/* Ledger Sheet Table */
-.sheet-container {
-  overflow: auto;
-  border: 1px solid var(--excel-border);
-  border-bottom: none;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-  background: white;
-}
-
-th {
-  background: var(--excel-header-bg);
-  color: var(--excel-header-text);
-  padding: 6px 12px;
-  font-weight: 500;
-  text-align: left;
-  border: 1px solid var(--excel-border);
-  font-size: 12px;
-}
-
-td {
-  border: 1px solid var(--excel-border);
-  padding: 0;
-}
-
-tr:hover td {
-  background-color: #f1f3f4;
-}
-
-.cell-input {
-  width: 100%;
-  height: 32px;
-  border: 2px solid transparent;
-  background: transparent;
-  padding: 0 10px;
-  font-family: inherit;
-  font-size: 13px;
-  color: inherit;
-  outline: none;
-  display: block;
-}
-
-.cell-input:focus {
-  background: white;
-  border-color: var(--excel-selection-border);
-  z-index: 2;
-  position: relative;
-}
-
-.number-input {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.balance-cell {
-  text-align: right;
-  padding: 0 10px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  font-weight: 500;
-  background-color: #fafafa;
-}
-
-.income-text { color: var(--income-color); }
-.expense-text { color: var(--expense-color); }
-
-/* Footer Summary */
-.summary-row td {
-  background: var(--excel-header-bg);
-  font-weight: 700;
-}
-
-.final-balance-total {
-  background: #e6f4ea !important;
-  color: var(--income-color);
-}
-
-/* Controls */
-.controls {
-  padding: 16px 0;
-  display: flex;
-  gap: 8px;
+.nav-link:hover {
+    color: var(--primary);
 }
 
 .btn {
-  padding: 6px 12px;
-  border: 1px solid var(--excel-border);
-  background: white;
-  color: var(--text-color);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.btn:hover {
-  background: #f8f9fa;
-  border-color: #c6c6c6;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    font-size: 0.95rem;
 }
 
 .btn-primary {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
+    background-color: var(--primary);
+    color: white;
 }
 
 .btn-primary:hover {
-  background: #1967d2;
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
 }
 
-.btn-secondary {
-  background-color: #f8f9fa;
-  color: var(--text-color);
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--border);
+    color: var(--secondary);
 }
 
-.btn-secondary:hover {
-  background-color: #f1f3f4;
+.btn-outline:hover {
+    background-color: #f1f5f9;
 }
 
-.btn-success {
-  background-color: #e6f4ea !important;
-  color: #0d652d !important;
-  border-color: #ceead6 !important;
+/* Hero Styles */
+.hero {
+    padding: 80px 0;
+    text-align: center;
+    background: radial-gradient(circle at top right, #eff6ff, transparent),
+                radial-gradient(circle at bottom left, #f8fafc, transparent);
 }
 
-.minimal-footer {
-  padding: 24px 0;
-  color: #9aa0a6;
-  font-size: 12px;
-  text-align: center;
+.hero-title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    background: linear-gradient(to right, #1e40af, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--secondary);
+    max-width: 600px;
+    margin: 0 auto 40px;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+}
+
+/* Board Styles */
+.section-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-bottom: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.board-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 24px;
+    padding-bottom: 60px;
+}
+
+.request-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: all 0.3s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.request-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--primary);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #f1f5f9;
+    color: var(--secondary);
+}
+
+.status-active {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.request-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.request-desc {
+    color: var(--secondary);
+    font-size: 0.95rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.card-footer {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.budget {
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 1.1rem;
+}
+
+.bid-count {
+    font-size: 0.875rem;
+    color: var(--secondary);
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: white;
+    padding: 32px;
+    border-radius: var(--radius);
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px);
+    transition: transform 0.3s;
+}
+
+.modal-overlay.active .modal-content {
+    transform: translateY(0);
+}
+
+.modal-header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--secondary);
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.form-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.price-summary {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: var(--radius);
+    margin-bottom: 24px;
+}
+
+.price-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.price-row.total {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.commission-tag {
+    color: var(--danger);
+    font-weight: 600;
+}
+
+/* Footer Styles */
+.main-footer {
+    margin-top: auto;
+    background: white;
+    border-top: 1px solid var(--border);
+    padding: 40px 0;
+    text-align: center;
+    color: var(--secondary);
+    font-size: 0.875rem;
 }

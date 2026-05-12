@@ -1,259 +1,207 @@
 /**
- * ONYX Church Youth Group Ledger - Web Component Implementation
- * Handles monthly data management and spreadsheet-like interaction.
+ * WebCraft Market - Main JavaScript
  */
 
-class LedgerSheet extends HTMLElement {
-  constructor() {
-    super();
-    const now = new Date();
-    this.currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    
-    // Initialize data with current month
-    this.ledgerData = {
-      [this.currentMonth]: [
-        { id: Date.now(), date: this.getTodayStr(), description: '이월 잔액', income: 0, expense: 0, balance: 0 }
-      ]
-    };
-    
-    this.render();
-  }
-
-  getTodayStr() {
-    return new Date().toISOString().split('T')[0];
-  }
-
-  connectedCallback() {
-    this.addEventListener('input', (e) => {
-      if (e.target.classList.contains('cell-input')) {
-        const rowId = parseInt(e.target.dataset.rowId);
-        const field = e.target.dataset.field;
-        this.updateRowData(rowId, field, e.target.value);
-      } else if (e.target.classList.contains('month-input')) {
-        this.switchMonth(e.target.value);
-      }
-    });
-
-    this.addEventListener('click', (e) => {
-      if (e.target.closest('.add-row-btn')) {
-        this.addRow();
-      } else if (e.target.closest('.reset-btn')) {
-        this.resetLedger();
-      } else if (e.target.closest('.copy-report-btn')) {
-        this.copyToClipboard(e.target.closest('.copy-report-btn'));
-      }
-    });
-  }
-
-  switchMonth(monthStr) {
-    this.currentMonth = monthStr;
-    if (!this.ledgerData[this.currentMonth]) {
-      // Find previous month's final balance
-      const months = Object.keys(this.ledgerData).sort();
-      const currentIndex = months.indexOf(this.currentMonth);
-      let prevBalance = 0;
-      
-      // Simpler: find the latest month before this one
-      const prevMonths = months.filter(m => m < this.currentMonth);
-      if (prevMonths.length > 0) {
-        const lastMonth = prevMonths[prevMonths.length - 1];
-        const lastMonthRows = this.ledgerData[lastMonth];
-        prevBalance = lastMonthRows.length > 0 ? lastMonthRows[lastMonthRows.length - 1].balance : 0;
-      }
-
-      this.ledgerData[this.currentMonth] = [
-        { id: Date.now(), date: `${this.currentMonth}-01`, description: '전월 이월', income: prevBalance, expense: 0, balance: prevBalance }
-      ];
+class MarketApp extends HTMLElement {
+    constructor() {
+        super();
+        this.requests = [
+            { id: 1, title: '식당 예약 시스템 랜딩 페이지', desc: '심플하고 모던한 감성의 식당 예약 페이지가 필요합니다. 반응형은 필수입니다.', budget: 500000, bids: 3, status: 'active' },
+            { id: 2, title: '포트폴리오 웹사이트 제작', desc: '디자이너를 위한 깔끔한 포트폴리오 사이트 제작을 요청합니다. 애니메이션 효과가 많았으면 좋겠어요.', budget: 800000, bids: 5, status: 'active' },
+            { id: 3, title: '소규모 커뮤니티 게시판', desc: '동호회에서 사용할 간단한 게시판 기능이 있는 웹사이트가 필요합니다.', budget: 1200000, bids: 2, status: 'active' }
+        ];
+        this.activeModal = null; // 'request' | 'checkout' | null
+        this.selectedRequest = null;
     }
-    this.render();
-  }
 
-  updateRowData(id, field, value) {
-    const rows = this.ledgerData[this.currentMonth];
-    const row = rows.find(r => r.id === id);
-    if (!row) return;
-
-    if (field === 'income' || field === 'expense') {
-      row[field] = parseFloat(value) || 0;
-      this.calculateBalances();
-    } else {
-      row[field] = value;
+    connectedCallback() {
+        this.render();
+        this.setupEventListeners();
     }
-    
-    this.updateBalanceDisplays();
-  }
 
-  calculateBalances() {
-    const rows = this.ledgerData[this.currentMonth];
-    let currentBalance = 0;
-    rows.forEach(row => {
-      currentBalance += (row.income - row.expense);
-      row.balance = currentBalance;
-    });
-  }
-
-  updateBalanceDisplays() {
-    const rows = this.ledgerData[this.currentMonth];
-    rows.forEach(row => {
-      const balanceCell = this.querySelector(`.balance-cell[data-row-id="${row.id}"]`);
-      if (balanceCell) {
-        balanceCell.textContent = this.formatCurrency(row.balance);
-      }
-    });
-
-    // Update totals
-    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
-    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
-    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
-
-    const totalIncomeEl = this.querySelector('#total-income');
-    const totalExpenseEl = this.querySelector('#total-expense');
-    const finalBalanceEl = this.querySelector('#final-balance');
-
-    if (totalIncomeEl) totalIncomeEl.textContent = this.formatCurrency(totalIncome);
-    if (totalExpenseEl) totalExpenseEl.textContent = this.formatCurrency(totalExpense);
-    if (finalBalanceEl) finalBalanceEl.textContent = this.formatCurrency(finalBalance);
-  }
-
-  addRow() {
-    const rows = this.ledgerData[this.currentMonth];
-    const lastRow = rows[rows.length - 1];
-    const newRow = {
-      id: Date.now(),
-      date: `${this.currentMonth}-${String(new Date().getDate()).padStart(2, '0')}`,
-      description: '',
-      income: 0,
-      expense: 0,
-      balance: lastRow ? lastRow.balance : 0
-    };
-    rows.push(newRow);
-    this.render();
-  }
-
-  resetLedger() {
-    if (confirm('현재 월의 모든 내용을 초기화할까요?')) {
-      this.ledgerData[this.currentMonth] = [
-        { id: Date.now(), date: `${this.currentMonth}-01`, description: '초기화됨', income: 0, expense: 0, balance: 0 }
-      ];
-      this.render();
+    setupEventListeners() {
+        this.addEventListener('click', (e) => {
+            if (e.target.closest('.btn-request')) {
+                this.openModal('request');
+            } else if (e.target.closest('.request-card')) {
+                const id = parseInt(e.target.closest('.request-card').dataset.id);
+                this.selectedRequest = this.requests.find(r => r.id === id);
+                this.openModal('checkout');
+            } else if (e.target.closest('.modal-overlay') && !e.target.closest('.modal-content')) {
+                this.closeModal();
+            } else if (e.target.closest('.btn-close-modal')) {
+                this.closeModal();
+            }
+        });
     }
-  }
 
-  async copyToClipboard(btn) {
-    const report = this.generateReport();
-    try {
-      await navigator.clipboard.writeText(report);
-      const originalText = btn.textContent;
-      btn.textContent = '✅ 복사 완료!';
-      btn.classList.add('btn-success');
-      setTimeout(() => {
-        btn.textContent = originalText;
-        btn.classList.remove('btn-success');
-      }, 2000);
-    } catch (err) {
-      console.error('Failed to copy: ', err);
-      alert('복사에 실패했습니다.');
+    openModal(type) {
+        this.activeModal = type;
+        this.render();
     }
-  }
 
-  generateReport() {
-    const rows = this.ledgerData[this.currentMonth];
-    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
-    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
-    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
+    closeModal() {
+        this.activeModal = null;
+        this.selectedRequest = null;
+        this.render();
+    }
 
-    let text = `[ONYX 청년부 ${this.currentMonth} 재정 보고]\n\n`;
-    text += `💰 총 수입: ${this.formatCurrency(totalIncome)}원\n`;
-    text += `💸 총 지출: ${this.formatCurrency(totalExpense)}원\n`;
-    text += `📊 최종 잔액: ${this.formatCurrency(finalBalance)}원\n`;
-    text += `--------------------\n\n`;
-    text += `[상세 내역]\n`;
+    formatCurrency(amount) {
+        return new Intl.NumberFormat('ko-KR').format(amount);
+    }
 
-    rows.forEach(row => {
-      const type = row.income > 0 ? '➕' : (row.expense > 0 ? '➖' : '🔹');
-      const amount = row.income > 0 ? row.income : (row.expense > 0 ? row.expense : 0);
-      text += `- ${row.date.slice(5)} ${row.description}: ${type}${this.formatCurrency(amount)}\n`;
-    });
+    render() {
+        const commissionRate = 0.15;
+        const commission = this.selectedRequest ? Math.round(this.selectedRequest.budget * commissionRate) : 0;
+        const total = this.selectedRequest ? this.selectedRequest.budget + commission : 0;
 
-    return text;
-  }
+        this.innerHTML = `
+            <header class="main-header">
+                <div class="container header-content">
+                    <a href="#" class="logo">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                        WebCraft
+                    </a>
+                    <nav class="nav-links">
+                        <a href="#" class="nav-link">의뢰 둘러보기</a>
+                        <a href="#" class="nav-link">전문가 찾기</a>
+                        <button class="btn btn-primary btn-request">의뢰하기</button>
+                    </nav>
+                </div>
+            </header>
 
-  formatCurrency(amount) {
-    return new Intl.NumberFormat('ko-KR').format(amount);
-  }
+            <main>
+                <section class="hero">
+                    <div class="container">
+                        <h1 class="hero-title">당신의 아이디어를<br>웹으로 실현하세요</h1>
+                        <p class="hero-subtitle">필요한 웹페이지를 요청하면 검증된 전문가들이 합리적인 가격에 제작해 드립니다. 안전한 결제 시스템으로 걱정 없이 거래하세요.</p>
+                        <div class="hero-actions">
+                            <button class="btn btn-primary btn-request">지금 바로 의뢰하기</button>
+                            <button class="btn btn-outline">포트폴리오 구경하기</button>
+                        </div>
+                    </div>
+                </section>
 
-  render() {
-    this.calculateBalances();
-    const rows = this.ledgerData[this.currentMonth];
-    const totalIncome = rows.reduce((sum, row) => sum + row.income, 0);
-    const totalExpense = rows.reduce((sum, row) => sum + row.expense, 0);
-    const finalBalance = rows.length > 0 ? rows[rows.length - 1].balance : 0;
-    
-    this.innerHTML = `
-      <div class="month-selector-bar">
-        <label for="month-picker">조회 월 선택:</label>
-        <input type="month" id="month-picker" class="month-input" value="${this.currentMonth}">
-      </div>
+                <section class="container" style="padding: 60px 24px;">
+                    <div class="section-title">
+                        <h2>최근 올라온 의뢰</h2>
+                        <a href="#" class="nav-link" style="font-size: 1rem;">전체 보기 &rarr;</a>
+                    </div>
+                    <div class="board-grid">
+                        ${this.requests.map(req => `
+                            <div class="request-card" data-id="${req.id}">
+                                <div class="card-header">
+                                    <span class="status-badge ${req.status === 'active' ? 'status-active' : ''}">
+                                        ${req.status === 'active' ? '지원 가능' : '마감'}
+                                    </span>
+                                </div>
+                                <h3 class="request-title">${req.title}</h3>
+                                <p class="request-desc">${req.desc}</p>
+                                <div class="card-footer">
+                                    <span class="budget">₩${this.formatCurrency(req.budget)}</span>
+                                    <span class="bid-count">${req.bids}명의 전문가 지원 중</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </section>
+                <section style="background-color: white; padding: 80px 0; border-top: 1px solid var(--border);">
+                    <div class="container">
+                        <div class="section-title" style="justify-content: center; margin-bottom: 48px;">
+                            <h2 style="font-size: 2.25rem;">이용 방법</h2>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; text-align: center;">
+                            <div>
+                                <div style="width: 64px; height: 64px; background: #eff6ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 700;">1</div>
+                                <h3 style="margin-bottom: 12px;">무료 의뢰 등록</h3>
+                                <p style="color: var(--secondary);">필요한 웹사이트의 내용을 상세히 적어 의뢰를 올리세요.</p>
+                            </div>
+                            <div>
+                                <div style="width: 64px; height: 64px; background: #eff6ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 700;">2</div>
+                                <h3 style="margin-bottom: 12px;">전문가 매칭</h3>
+                                <p style="color: var(--secondary);">검증된 웹 개발자들이 제안서와 견적을 보냅니다.</p>
+                            </div>
+                            <div>
+                                <div style="width: 64px; height: 64px; background: #eff6ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 700;">3</div>
+                                <h3 style="margin-bottom: 12px;">안전한 에스크로 결제</h3>
+                                <p style="color: var(--secondary);">대금은 플랫폼이 안전하게 보관하며 작업 완료 후 지급됩니다.</p>
+                            </div>
+                            <div>
+                                <div style="width: 64px; height: 64px; background: #eff6ff; color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 1.5rem; font-weight: 700;">4</div>
+                                <h3 style="margin-bottom: 12px;">작물 완료 및 수령</h3>
+                                <p style="color: var(--secondary);">완성된 결과물을 확인하고 최종 승인하면 거래가 종료됩니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
-      <div class="sheet-container">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 120px;">날짜</th>
-              <th>적요 (내용)</th>
-              <th style="width: 150px;">수입 (₩)</th>
-              <th style="width: 150px;">지출 (₩)</th>
-              <th style="width: 180px;">잔액 (₩)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(row => `
-              <tr data-row-id="${row.id}">
-                <td>
-                  <input type="date" class="cell-input" 
-                    data-row-id="${row.id}" data-field="date" value="${row.date}">
-                </td>
-                <td>
-                  <input type="text" class="cell-input" 
-                    data-row-id="${row.id}" data-field="description" value="${row.description}" placeholder="내용 입력...">
-                </td>
-                <td>
-                  <input type="number" class="cell-input number-input income-text" 
-                    data-row-id="${row.id}" data-field="income" value="${row.income}" placeholder="0">
-                </td>
-                <td>
-                  <input type="number" class="cell-input number-input expense-text" 
-                    data-row-id="${row.id}" data-field="expense" value="${row.expense}" placeholder="0">
-                </td>
-                <td class="balance-cell" data-row-id="${row.id}">
-                  ${this.formatCurrency(row.balance)}
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-          <tfoot>
-            <tr class="summary-row">
-              <td colspan="2" style="text-align: right; padding: 6px 12px; font-weight: 700;">월 합계</td>
-              <td class="number-input income-text" style="padding: 6px 12px; font-weight: 700;" id="total-income">${this.formatCurrency(totalIncome)}</td>
-              <td class="number-input expense-text" style="padding: 6px 12px; font-weight: 700;" id="total-expense">${this.formatCurrency(totalExpense)}</td>
-              <td class="balance-cell final-balance-total" id="final-balance">${this.formatCurrency(finalBalance)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-      <div class="controls">
-        <button class="btn btn-primary add-row-btn">
-          + 행 추가
-        </button>
-        <button class="btn btn-secondary copy-report-btn">
-          💬 보고서 복사 (메신저용)
-        </button>
-        <button class="btn reset-btn">
-          현재 월 초기화
-        </button>
-      </div>
-    `;
-  }
+            </main>
+
+            <footer class="main-footer">
+                <div class="container">
+                    <p>&copy; 2024 WebCraft Market. All rights reserved.</p>
+                    <p style="margin-top: 8px; opacity: 0.7;">안전한 거래와 업계 표준 수수료(15%)를 보장합니다.</p>
+                </div>
+            </footer>
+
+            <!-- Request Modal -->
+            <div class="modal-overlay ${this.activeModal === 'request' ? 'active' : ''}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">웹사이트 제작 의뢰</h2>
+                        <button class="btn btn-outline btn-close-modal" style="padding: 4px 8px;">&times;</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">의뢰 제목</label>
+                        <input type="text" class="form-input" placeholder="예: 화장품 브랜드 랜딩 페이지 제작">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">상세 설명</label>
+                        <textarea class="form-input form-textarea" placeholder="필요한 기능이나 디자인 스타일을 자세히 적어주세요."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">희망 예산 (₩)</label>
+                        <input type="number" class="form-input" placeholder="500,000">
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; margin-top: 12px;">의뢰 등록하기</button>
+                </div>
+            </div>
+
+            <!-- Checkout Modal -->
+            <div class="modal-overlay ${this.activeModal === 'checkout' ? 'active' : ''}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2 class="modal-title">결제 및 에스크로</h2>
+                        <button class="btn btn-outline btn-close-modal" style="padding: 4px 8px;">&times;</button>
+                    </div>
+                    <p style="margin-bottom: 20px; color: var(--secondary); font-size: 0.95rem;">
+                        선택하신 전문가와 안전하게 거래를 시작합니다. 대금은 에스크로에 보관되며, 작업 완료 승인 후 전문가에게 지급됩니다.
+                    </p>
+                    <div class="price-summary">
+                        <div class="price-row">
+                            <span>프로젝트 비용</span>
+                            <span>₩${this.selectedRequest ? this.formatCurrency(this.selectedRequest.budget) : 0}</span>
+                        </div>
+                        <div class="price-row">
+                            <span>플랫폼 이용료 <span class="commission-tag">(15%)</span></span>
+                            <span>₩${this.formatCurrency(commission)}</span>
+                        </div>
+                        <div class="price-row total">
+                            <span>최종 결제 금액</span>
+                            <span>₩${this.formatCurrency(total)}</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%;">안전 결제하기</button>
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--secondary); margin-top: 16px;">
+                        결제 시 서비스 이용약관에 동의하게 됩니다.
+                    </p>
+                </div>
+            </div>
+        `;
+    }
 }
 
-customElements.define('ledger-sheet', LedgerSheet);
+customElements.define('market-app', MarketApp);
+
+// Initialize app
+document.getElementById('app').innerHTML = '<market-app></market-app>';
